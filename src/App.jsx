@@ -4,9 +4,12 @@ import HouseScene from './components/HouseScene'
 
 export default function App() {
   const [viewMode, setViewMode] = useState('perspective')
+  // Vista 3D inicial: observador posicionado na Rua I, olhando para dentro do lote.
+  // Como a frente do terreno está em z = 0 e o lote se desenvolve em -Z,
+  // a câmera começa do lado positivo de Z, centralizada na testada.
   const camera = viewMode === 'top'
     ? { position: [0, 32, 0.01], fov: 42 }
-    : { position: [18, 17, 20], fov: 45 }
+    : { position: [0, 8.5, 19], fov: 45 }
 
   return (
     <main className="relative h-dvh w-screen overflow-hidden bg-slate-900">
