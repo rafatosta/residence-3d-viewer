@@ -30,13 +30,27 @@ function DimensionLabel({ text, position, rotation = 0 }) {
 }
 
 function Lot() {
+  // Centraliza a geometria do lote pela caixa delimitadora antes de aplicar
+  // sua orientação no workspace. Assim, dimensões, rótulos e polígono usam
+  // exatamente a mesma origem local.
+  const xs = site.polygon.map(([x]) => x)
+  const zs = site.polygon.map(([, z]) => z)
+  const centerX = (Math.min(...xs) + Math.max(...xs)) / 2
+  const centerZ = (Math.min(...zs) + Math.max(...zs)) / 2
+  const polygon = site.polygon.map(([x, z]) => [x - centerX, z - centerZ])
+
   const shape = new THREE.Shape()
-  site.polygon.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z))
+  polygon.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z))
   shape.closePath()
   const rotation = THREE.MathUtils.degToRad(site.orientation.workspaceRotationDegrees)
 
+  const frontMid = [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2]
+  const rightMid = [(polygon[1][0] + polygon[2][0]) / 2, (polygon[1][1] + polygon[2][1]) / 2]
+  const rearMid = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2]
+  const leftMid = [(polygon[3][0] + polygon[0][0]) / 2, (polygon[3][1] + polygon[0][1]) / 2]
+
   return (
-    <group rotation={[0, rotation, 0]} position={[0, 0.05, 11.2]}>
+    <group rotation={[0, rotation, 0]} position={[0, 0.05, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <shapeGeometry args={[shape]} />
         <meshStandardMaterial color="#dbe7cf" roughness={1} side={THREE.DoubleSide} />
@@ -46,11 +60,11 @@ function Lot() {
         <lineBasicMaterial color="#365314" />
       </lineSegments>
 
-      <DimensionLabel text="17,84 m · RUA I" position={[0, 0.07, 0.65]} />
-      <DimensionLabel text="17,92 m · ÁREA VERDE" position={[-0.25, 0.07, -22.85]} />
-      <DimensionLabel text="23,07 m" position={[-9.65, 0.07, -11.55]} rotation={Math.PI / 2 - 0.012} />
-      <DimensionLabel text="21,41 m" position={[9.35, 0.07, -10.7]} rotation={Math.PI / 2 - 0.012} />
-      <Text position={[0, 0.08, -10.9]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.46} color="#365314" anchorX="center">LOTE 04 · 396,55 m²</Text>
+      <DimensionLabel text="17,84 m · RUA I" position={[frontMid[0], 0.07, frontMid[1] + 0.65]} />
+      <DimensionLabel text="17,92 m · ÁREA VERDE" position={[rearMid[0], 0.07, rearMid[1] - 0.65]} />
+      <DimensionLabel text="23,07 m" position={[rightMid[0] + 0.72, 0.07, rightMid[1]]} rotation={Math.PI / 2} />
+      <DimensionLabel text="21,41 m" position={[leftMid[0] - 0.72, 0.07, leftMid[1]]} rotation={Math.PI / 2} />
+      <Text position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.46} color="#365314" anchorX="center">LOTE 04 · 396,55 m²</Text>
     </group>
   )
 }
