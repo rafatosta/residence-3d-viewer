@@ -44,23 +44,42 @@ function Lot() {
   const rearMid = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2]
   const leftMid = [(polygon[3][0] + polygon[0][0]) / 2, (polygon[3][1] + polygon[0][1]) / 2]
 
-  // A Rua I acompanha exatamente a testada reta de 17,84 m. A irregularidade
-  // do lote está no fundo, como mostra a planta planimétrica enviada.
+  // Rua construída a partir do próprio segmento frontal do lote. Isso garante
+  // que a borda da via e a testada sejam geometricamente coincidentes/paralelas,
+  // independentemente da rotação global do terreno no workspace.
+  const [fx1, fz1] = polygon[0]
+  const [fx2, fz2] = polygon[1]
+  const frontDx = fx2 - fx1
+  const frontDz = fz2 - fz1
+  const frontLength = Math.hypot(frontDx, frontDz)
+  const tx = frontDx / frontLength
+  const tz = frontDz / frontLength
+  // normal externa: o interior do lote está no lado -Z da frente local
+  const nx = -tz
+  const nz = tx
   const roadWidth = 5.97
-  const roadLength = 27
-  const roadCenterZ = frontMid[1] + roadWidth / 2 + 0.35
+  const extension = 5
+  const roadStart = [fx1 - tx * extension, fz1 - tz * extension]
+  const roadEnd = [fx2 + tx * extension, fz2 + tz * extension]
+  const roadShape = new THREE.Shape()
+  roadShape.moveTo(roadStart[0], roadStart[1])
+  roadShape.lineTo(roadEnd[0], roadEnd[1])
+  roadShape.lineTo(roadEnd[0] + nx * roadWidth, roadEnd[1] + nz * roadWidth)
+  roadShape.lineTo(roadStart[0] + nx * roadWidth, roadStart[1] + nz * roadWidth)
+  roadShape.closePath()
+  const roadLabel = [frontMid[0] + nx * roadWidth / 2, frontMid[1] + nz * roadWidth / 2]
 
   return (
     <group rotation={[0, rotation, 0]} position={[0, 0.05, 0]}>
-      <mesh position={[frontMid[0], -0.025, roadCenterZ]} receiveShadow>
-        <boxGeometry args={[roadLength, 0.035, roadWidth]} />
-        <meshStandardMaterial color="#c7cbd0" roughness={1} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} receiveShadow>
+        <shapeGeometry args={[roadShape]} />
+        <meshStandardMaterial color="#c7cbd0" roughness={1} side={THREE.DoubleSide} />
       </mesh>
-      <lineSegments position={[frontMid[0], 0, roadCenterZ]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(roadLength, 0.04, roadWidth)]} />
+      <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+        <edgesGeometry args={[new THREE.ShapeGeometry(roadShape)]} />
         <lineBasicMaterial color="#64748b" />
       </lineSegments>
-      <Text position={[frontMid[0], 0.045, roadCenterZ]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.55} color="#475569" anchorX="center">RUA I</Text>
+      <Text position={[roadLabel[0], 0.045, roadLabel[1]]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.55} color="#475569" anchorX="center">RUA I</Text>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <shapeGeometry args={[shape]} />
@@ -70,7 +89,7 @@ function Lot() {
         <edgesGeometry args={[new THREE.ShapeGeometry(shape)]} />
         <lineBasicMaterial color="#365314" />
       </lineSegments>
-      <DimensionLabel text="17,84 m" position={[frontMid[0], 0.07, frontMid[1] - 0.48]} />
+      <DimensionLabel text="17,84 m" position={[frontMid[0] - nx * 0.48, 0.07, frontMid[1] - nz * 0.48]} />
       <DimensionLabel text="17,92 m · ÁREA VERDE" position={[rearMid[0], 0.07, rearMid[1] - 0.65]} />
       <DimensionLabel text="21,41 m" position={[rightMid[0] + 0.72, 0.07, rightMid[1]]} rotation={Math.PI / 2} />
       <DimensionLabel text="23,07 m" position={[leftMid[0] - 0.72, 0.07, leftMid[1]]} rotation={Math.PI / 2} />
