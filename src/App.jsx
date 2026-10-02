@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useMemo, useState } from 'react'
 import HouseScene from './components/HouseScene'
 import MobileJoystick from './components/MobileJoystick'
+import MiniMap from './components/MiniMap'
 import { rooms } from './data/house'
 
 function RoomPanel({ selectedRoom }) {
@@ -22,11 +23,7 @@ function RoomPanel({ selectedRoom }) {
 export default function App() {
   const [viewMode, setViewMode] = useState('perspective')
   const [selectedRoom, setSelectedRoom] = useState(null)
-  const camera = viewMode === 'top'
-    ? { position: [0, 26, 11], fov: 42 }
-    : viewMode === 'walk'
-      ? { position: [0, 1.7, 4.8], fov: 65 }
-      : { position: [13, 14, 17], fov: 42 }
+  const camera = viewMode === 'top' ? { position: [0, 26, 11], fov: 42 } : viewMode === 'walk' ? { position: [0, 1.7, 4.8], fov: 65 } : { position: [13, 14, 17], fov: 42 }
 
   const changeView = (mode) => {
     if (document.pointerLockElement) document.exitPointerLock()
@@ -43,9 +40,7 @@ export default function App() {
           <p className="mt-1 hidden max-w-xl text-xs leading-relaxed text-slate-600 sm:block">Reconstrução inicial em escala métrica. O modo passeio é livre e ainda não possui colisões.</p>
         </div>
         <div className="pointer-events-auto flex rounded-xl border border-white/40 bg-slate-950/80 p-1 shadow-xl backdrop-blur">
-          {[
-            ['perspective', '3D'], ['top', 'Planta'], ['walk', 'Passeio'],
-          ].map(([mode, label]) => (
+          {[['perspective', '3D'], ['top', 'Planta'], ['walk', 'Passeio']].map(([mode, label]) => (
             <button key={mode} type="button" onClick={() => changeView(mode)} className={`rounded-lg px-3 py-2 text-xs font-medium transition ${viewMode === mode ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-white/10'}`}>{label}</button>
           ))}
         </div>
@@ -55,8 +50,7 @@ export default function App() {
         <Suspense fallback={null}><HouseScene selectedRoom={selectedRoom} onSelectRoom={setSelectedRoom} viewMode={viewMode} /></Suspense>
       </Canvas>
 
-      {viewMode === 'walk' && <MobileJoystick />}
-
+      {viewMode === 'walk' && <><MobileJoystick /><MiniMap /></>}
       {viewMode === 'walk' ? (
         <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 rounded-xl bg-slate-950/80 px-4 py-2 text-center text-[11px] text-white shadow backdrop-blur md:block">Clique na cena • WASD/setas para andar • mouse para olhar • Esc libera o cursor</div>
       ) : (
