@@ -13,11 +13,11 @@ export default function WalkControls() {
   const direction = useRef(new THREE.Vector3())
   const right = useRef(new THREE.Vector3())
   const up = useRef(new THREE.Vector3(0, 1, 0))
+  const lastPoseUpdate = useRef(0)
 
   useEffect(() => {
     camera.position.set(0, EYE_HEIGHT, 4.8)
     camera.lookAt(0, EYE_HEIGHT, 8)
-
     const down = (event) => { keys.current[event.code] = true }
     const upKey = (event) => { keys.current[event.code] = false }
     const onJoystick = (event) => { joystick.current = event.detail }
@@ -31,7 +31,7 @@ export default function WalkControls() {
     }
   }, [camera])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const step = SPEED * Math.min(delta, 0.05)
     camera.getWorldDirection(direction.current)
     direction.current.y = 0
@@ -46,15 +46,17 @@ export default function WalkControls() {
     if (keys.current.KeyD || keys.current.ArrowRight) strafe += 1
     forward += -joystick.current.y
     strafe += joystick.current.x
-
     const magnitude = Math.hypot(forward, strafe)
-    if (magnitude > 1) {
-      forward /= magnitude
-      strafe /= magnitude
-    }
+    if (magnitude > 1) { forward /= magnitude; strafe /= magnitude }
     camera.position.addScaledVector(direction.current, forward * step)
     camera.position.addScaledVector(right.current, strafe * step)
     camera.position.y = EYE_HEIGHT
+
+    if (state.clock.elapsedTime - lastPoseUpdate.current > 0.05) {
+      lastPoseUpdate.current = state.clock.elapsedTime
+      const yaw = Math.atan2(direction.current.x, direction.current.z)
+      window.dispatchEvent(new CustomEvent('walk-pose', { detail: { x: camera.position.x, z: camera.position.z, yaw } }))
+    }
   })
 
   return <PointerLockControls makeDefault />
