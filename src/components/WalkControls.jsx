@@ -9,6 +9,7 @@ const SPEED = 4.2
 export default function WalkControls() {
   const { camera } = useThree()
   const keys = useRef({})
+  const joystick = useRef({ x: 0, y: 0 })
   const direction = useRef(new THREE.Vector3())
   const right = useRef(new THREE.Vector3())
   const up = useRef(new THREE.Vector3(0, 1, 0))
@@ -19,11 +20,14 @@ export default function WalkControls() {
 
     const down = (event) => { keys.current[event.code] = true }
     const upKey = (event) => { keys.current[event.code] = false }
+    const onJoystick = (event) => { joystick.current = event.detail }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', upKey)
+    window.addEventListener('walk-joystick', onJoystick)
     return () => {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', upKey)
+      window.removeEventListener('walk-joystick', onJoystick)
     }
   }, [camera])
 
@@ -34,10 +38,22 @@ export default function WalkControls() {
     direction.current.normalize()
     right.current.crossVectors(direction.current, up.current).normalize()
 
-    if (keys.current.KeyW || keys.current.ArrowUp) camera.position.addScaledVector(direction.current, step)
-    if (keys.current.KeyS || keys.current.ArrowDown) camera.position.addScaledVector(direction.current, -step)
-    if (keys.current.KeyA || keys.current.ArrowLeft) camera.position.addScaledVector(right.current, -step)
-    if (keys.current.KeyD || keys.current.ArrowRight) camera.position.addScaledVector(right.current, step)
+    let forward = 0
+    let strafe = 0
+    if (keys.current.KeyW || keys.current.ArrowUp) forward += 1
+    if (keys.current.KeyS || keys.current.ArrowDown) forward -= 1
+    if (keys.current.KeyA || keys.current.ArrowLeft) strafe -= 1
+    if (keys.current.KeyD || keys.current.ArrowRight) strafe += 1
+    forward += -joystick.current.y
+    strafe += joystick.current.x
+
+    const magnitude = Math.hypot(forward, strafe)
+    if (magnitude > 1) {
+      forward /= magnitude
+      strafe /= magnitude
+    }
+    camera.position.addScaledVector(direction.current, forward * step)
+    camera.position.addScaledVector(right.current, strafe * step)
     camera.position.y = EYE_HEIGHT
   })
 
