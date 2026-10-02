@@ -5,6 +5,8 @@ import * as THREE from 'three'
 
 const EYE_HEIGHT = 1.7
 const SPEED = 4.2
+const LOOK_SENSITIVITY = 0.004
+const MAX_PITCH = Math.PI / 2 - 0.08
 
 export default function WalkControls() {
   const { camera } = useThree()
@@ -14,6 +16,7 @@ export default function WalkControls() {
   const right = useRef(new THREE.Vector3())
   const up = useRef(new THREE.Vector3(0, 1, 0))
   const lastPoseUpdate = useRef(0)
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
 
   useEffect(() => {
     camera.position.set(0, EYE_HEIGHT, 4.8)
@@ -21,13 +24,22 @@ export default function WalkControls() {
     const down = (event) => { keys.current[event.code] = true }
     const upKey = (event) => { keys.current[event.code] = false }
     const onJoystick = (event) => { joystick.current = event.detail }
+    const onLook = (event) => {
+      euler.current.setFromQuaternion(camera.quaternion)
+      euler.current.y -= event.detail.dx * LOOK_SENSITIVITY
+      euler.current.x -= event.detail.dy * LOOK_SENSITIVITY
+      euler.current.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.current.x))
+      camera.quaternion.setFromEuler(euler.current)
+    }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', upKey)
     window.addEventListener('walk-joystick', onJoystick)
+    window.addEventListener('walk-look', onLook)
     return () => {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', upKey)
       window.removeEventListener('walk-joystick', onJoystick)
+      window.removeEventListener('walk-look', onLook)
     }
   }, [camera])
 
@@ -37,7 +49,6 @@ export default function WalkControls() {
     direction.current.y = 0
     direction.current.normalize()
     right.current.crossVectors(direction.current, up.current).normalize()
-
     let forward = 0
     let strafe = 0
     if (keys.current.KeyW || keys.current.ArrowUp) forward += 1
