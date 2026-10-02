@@ -30,20 +30,15 @@ function DimensionLabel({ text, position, rotation = 0 }) {
 }
 
 function Lot() {
-  // Centraliza a geometria do lote pela caixa delimitadora antes de aplicar
-  // sua orientação no workspace. Assim, dimensões, rótulos e polígono usam
-  // exatamente a mesma origem local.
   const xs = site.polygon.map(([x]) => x)
   const zs = site.polygon.map(([, z]) => z)
   const centerX = (Math.min(...xs) + Math.max(...xs)) / 2
   const centerZ = (Math.min(...zs) + Math.max(...zs)) / 2
   const polygon = site.polygon.map(([x, z]) => [x - centerX, z - centerZ])
-
   const shape = new THREE.Shape()
   polygon.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z))
   shape.closePath()
   const rotation = THREE.MathUtils.degToRad(site.orientation.workspaceRotationDegrees)
-
   const frontMid = [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2]
   const rightMid = [(polygon[1][0] + polygon[2][0]) / 2, (polygon[1][1] + polygon[2][1]) / 2]
   const rearMid = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2]
@@ -59,7 +54,6 @@ function Lot() {
         <edgesGeometry args={[new THREE.ShapeGeometry(shape)]} />
         <lineBasicMaterial color="#365314" />
       </lineSegments>
-
       <DimensionLabel text="17,84 m · RUA I" position={[frontMid[0], 0.07, frontMid[1] + 0.65]} />
       <DimensionLabel text="17,92 m · ÁREA VERDE" position={[rearMid[0], 0.07, rearMid[1] - 0.65]} />
       <DimensionLabel text="23,07 m" position={[rightMid[0] + 0.72, 0.07, rightMid[1]]} rotation={Math.PI / 2} />
@@ -78,7 +72,24 @@ export default function HouseScene({ viewMode }) {
       <directionalLight position={[10, 18, 8]} intensity={1.5} castShadow />
       <ConstructionWorkspace />
       <Lot />
-      <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={8} maxDistance={60} maxPolarAngle={topView ? 0.06 : Math.PI / 2.04} minPolarAngle={topView ? 0.01 : 0.25} target={[0, 0, 0]} touches={{ ONE: 1, TWO: 2 }} />
+      <OrbitControls
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        enableRotate
+        enableZoom
+        enablePan
+        rotateSpeed={0.7}
+        zoomSpeed={0.9}
+        panSpeed={0.7}
+        minDistance={8}
+        maxDistance={60}
+        minPolarAngle={topView ? 0.01 : 0.12}
+        maxPolarAngle={topView ? 0.45 : Math.PI / 2.04}
+        target={[0, 0, 0]}
+        mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
+      />
     </>
   )
 }
