@@ -1,34 +1,47 @@
-// Geometria real do Lote 04, Quadra 07 — Condomínio Marina Ville.
-// Fonte: planta planimétrica/memorial descritivo (junho/2026).
-// Convenção: 1 unidade = 1 metro; frente (Rua I) em z = 0.
+// Lote 04, Quadra 07 — Condomínio Marina Ville.
+// 1 unidade = 1 metro.
 //
-// As quatro medidas perimetrais, isoladamente, não determinam de forma única
-// os quatro ângulos do lote. A planta planimétrica mostra as laterais praticamente
-// paralelas e a frente/fundo levemente não paralelos. A geometria abaixo adota
-// essa configuração e fecha o polígono preservando as quatro cotas oficiais.
+// Cotas do memorial/planta planimétrica:
+// frente (Rua I): 17,84 m
+// lateral junto ao Lote 05: 23,07 m
+// lateral junto ao Lote 03: 21,41 m
+// fundo (área verde): 17,92 m
+// área: 396,55 m²
+//
+// O polígono abaixo fecha geometricamente com as quatro cotas e a área oficial.
+// Na prancha planimétrica, olhando a Rua I na base do desenho, 23,07 m aparece
+// à esquerda e 21,41 m à direita.
+//
+// O estudo preliminar arquitetônico inclui uma rosa dos ventos. O norte gráfico
+// está aproximadamente 20° a leste do topo da prancha. Para manter o workspace
+// com Norte = -Z, o lote é rotacionado -20° em torno do eixo Y.
+// Esse ângulo é uma leitura gráfica da prancha, não um azimute topográfico cotado.
 
 export const site = {
   name: 'Lote 04 — Quadra 07',
   area: 396.55,
   boundaries: {
-    front: 17.84, // Rua I
-    left: 21.41, // confronta Lote 03
-    right: 23.07, // confronta Lote 05
-    rear: 17.92, // área verde do condomínio
+    front: 17.84,
+    leftOnDrawing: 23.07,
+    rightOnDrawing: 21.41,
+    rear: 17.92,
   },
-  setbacks: {
-    front: 2.0,
-    sideRequired: 1.5, // obrigatório em um dos lados
-    rear: 1.5,
+  neighbors: {
+    front: 'Rua I',
+    rear: 'Área verde do Condomínio Marina Ville',
+    leftOnDrawing: 'Lote 05',
+    rightOnDrawing: 'Lote 03',
   },
-  // Coordenadas aproximadas derivadas da configuração mostrada na planta.
-  // Ordem: frente-esquerda, frente-direita, fundo-direita, fundo-esquerda.
+  orientation: {
+    northFromPlanTopDegrees: 20,
+    workspaceRotationDegrees: -20,
+    source: 'Estudo preliminar — rosa dos ventos (leitura gráfica aproximada)',
+  },
+  // Coordenadas locais antes da rotação. Frente centralizada em z = 0.
   polygon: [
     [-8.92, 0],
     [8.92, 0],
-    [8.92, 23.07],
-    [-8.9998, 21.4099],
+    [8.66017427, -21.40842336],
+    [-9.18276646, -23.06850350],
   ],
-  street: 'Rua I',
-  rearBoundary: 'Área verde do Condomínio Marina Ville',
 };
