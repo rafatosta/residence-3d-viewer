@@ -6,27 +6,15 @@ const CHARACTER_HEIGHT = 1.6
 const MOVE_SPEED = 2.2
 const CAMERA_DISTANCE = 4.2
 const CAMERA_HEIGHT = 2.8
-const INITIAL_YAW = 0 // Rua I (+Z) -> interior do terreno (-Z)
+const INITIAL_YAW = 0
 
 function Character({ groupRef }) {
   return (
     <group ref={groupRef} position={[0, 0, 3.4]} rotation={[0, Math.PI, 0]}>
-      <mesh position={[0, 1.36, 0]} castShadow>
-        <sphereGeometry args={[0.18, 16, 12]} />
-        <meshStandardMaterial color="#d6a77a" />
-      </mesh>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <capsuleGeometry args={[0.22, 0.62, 8, 16]} />
-        <meshStandardMaterial color="#334155" />
-      </mesh>
-      <mesh position={[-0.12, 0.32, 0]} castShadow>
-        <capsuleGeometry args={[0.075, 0.5, 6, 10]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-      <mesh position={[0.12, 0.32, 0]} castShadow>
-        <capsuleGeometry args={[0.075, 0.5, 6, 10]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
+      <mesh position={[0, 1.36, 0]} castShadow><sphereGeometry args={[0.18, 16, 12]} /><meshStandardMaterial color="#d6a77a" /></mesh>
+      <mesh position={[0, 0.9, 0]} castShadow><capsuleGeometry args={[0.22, 0.62, 8, 16]} /><meshStandardMaterial color="#334155" /></mesh>
+      <mesh position={[-0.12, 0.32, 0]} castShadow><capsuleGeometry args={[0.075, 0.5, 6, 10]} /><meshStandardMaterial color="#1e293b" /></mesh>
+      <mesh position={[0.12, 0.32, 0]} castShadow><capsuleGeometry args={[0.075, 0.5, 6, 10]} /><meshStandardMaterial color="#1e293b" /></mesh>
     </group>
   )
 }
@@ -35,6 +23,7 @@ export default function ThirdPersonController() {
   const { camera, gl } = useThree()
   const character = useRef()
   const keys = useRef({})
+  const joystick = useRef({ x: 0, y: 0 })
   const yaw = useRef(INITIAL_YAW)
   const pitch = useRef(0.25)
   const dragging = useRef(false)
@@ -48,6 +37,7 @@ export default function ThirdPersonController() {
   useEffect(() => {
     const down = (event) => { keys.current[event.code] = true }
     const up = (event) => { keys.current[event.code] = false }
+    const mobileMove = (event) => { joystick.current = event.detail }
     const element = gl.domElement
     const pointerDown = (event) => {
       dragging.current = true
@@ -65,6 +55,7 @@ export default function ThirdPersonController() {
     const pointerUp = () => { dragging.current = false }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
+    window.addEventListener('third-person-move', mobileMove)
     element.addEventListener('pointerdown', pointerDown)
     element.addEventListener('pointermove', pointerMove)
     element.addEventListener('pointerup', pointerUp)
@@ -72,6 +63,7 @@ export default function ThirdPersonController() {
     return () => {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
+      window.removeEventListener('third-person-move', mobileMove)
       element.removeEventListener('pointerdown', pointerDown)
       element.removeEventListener('pointermove', pointerMove)
       element.removeEventListener('pointerup', pointerUp)
@@ -85,15 +77,25 @@ export default function ThirdPersonController() {
     forward.current.set(-Math.sin(yaw.current), 0, -Math.cos(yaw.current)).normalize()
     right.current.set(-forward.current.z, 0, forward.current.x)
     move.current.set(0, 0, 0)
-    if (keys.current.KeyW || keys.current.ArrowUp) move.current.add(forward.current)
-    if (keys.current.KeyS || keys.current.ArrowDown) move.current.sub(forward.current)
-    if (keys.current.KeyD || keys.current.ArrowRight) move.current.add(right.current)
-    if (keys.current.KeyA || keys.current.ArrowLeft) move.current.sub(right.current)
-    if (move.current.lengthSq() > 0) {
-      move.current.normalize()
+
+    let forwardInput = 0
+    let strafeInput = 0
+    if (keys.current.KeyW || keys.current.ArrowUp) forwardInput += 1
+    if (keys.current.KeyS || keys.current.ArrowDown) forwardInput -= 1
+    if (keys.current.KeyD || keys.current.ArrowRight) strafeInput += 1
+    if (keys.current.KeyA || keys.current.ArrowLeft) strafeInput -= 1
+    forwardInput += -joystick.current.y
+    strafeInput += joystick.current.x
+
+    move.current.addScaledVector(forward.current, forwardInput)
+    move.current.addScaledVector(right.current, strafeInput)
+    const magnitude = move.current.length()
+    if (magnitude > 0.04) {
+      if (magnitude > 1) move.current.divideScalar(magnitude)
       character.current.position.addScaledVector(move.current, MOVE_SPEED * dt)
       character.current.rotation.y = Math.atan2(move.current.x, move.current.z)
     }
+
     character.current.position.x = THREE.MathUtils.clamp(character.current.position.x, -26, 26)
     character.current.position.z = THREE.MathUtils.clamp(character.current.position.z, -26, 26)
     const horizontalDistance = CAMERA_DISTANCE * Math.cos(pitch.current)
