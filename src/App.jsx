@@ -2,9 +2,20 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useState } from 'react'
 import HouseScene from './components/HouseScene'
 import MobileWalkControls from './components/MobileWalkControls'
+import LayersMenu from './components/LayersMenu'
+
+const INITIAL_LAYERS = {
+  workspace: true,
+  street: true,
+  lots: true,
+  green: true,
+  architecture: true,
+}
 
 export default function App() {
   const [viewMode, setViewMode] = useState('perspective')
+  const [layers, setLayers] = useState(INITIAL_LAYERS)
+  const toggleLayer = (key) => setLayers((current) => ({ ...current, [key]: !current[key] }))
   const camera = viewMode === 'top'
     ? { position: [0, 38, 0.01], fov: 42 }
     : viewMode === 'walk'
@@ -26,8 +37,9 @@ export default function App() {
         </div>
       </header>
       <Canvas key={viewMode} shadows dpr={[1, 1.75]} camera={camera} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-        <Suspense fallback={null}><HouseScene viewMode={viewMode} /></Suspense>
+        <Suspense fallback={null}><HouseScene viewMode={viewMode} layers={layers} /></Suspense>
       </Canvas>
+      <LayersMenu layers={layers} onToggle={toggleLayer} />
       {viewMode === 'walk' && <MobileWalkControls />}
       {viewMode === 'walk' ? (
         <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 rounded-full bg-slate-950/80 px-4 py-2 text-center text-[11px] text-white shadow backdrop-blur md:block">WASD/setas para andar · arraste para girar a câmera · avatar 1,60 m</div>
