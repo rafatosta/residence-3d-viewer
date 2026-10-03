@@ -2,8 +2,13 @@ import { OrbitControls, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { site } from '../data/site'
 
-const WORKSPACE_SIZE = 54
+const WORKSPACE_SIZE = 56
 const HALF = WORKSPACE_SIZE / 2
+const ROAD_WIDTH = 5.97
+const SIDEWALK_WIDTH = 1.01
+const NEIGHBOR_WIDTH = 11
+const GREEN_DEPTH = 5.5
+const CONTEXT_HALF_WIDTH = site.boundaries.front / 2 + NEIGHBOR_WIDTH
 
 function CardinalMarker({ label, position }) {
   return <Text position={position} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.72} color="#0f172a" anchorX="center" anchorY="middle">{label}</Text>
@@ -11,86 +16,119 @@ function CardinalMarker({ label, position }) {
 
 function ConstructionWorkspace() {
   return <group>
-    <mesh position={[0, -0.12, 0]} receiveShadow><boxGeometry args={[WORKSPACE_SIZE, 0.08, WORKSPACE_SIZE]} /><meshStandardMaterial color="#f8fafc" roughness={1} /></mesh>
-    <gridHelper args={[WORKSPACE_SIZE, 54, '#94a3b8', '#d7dde5']} position={[0, -0.065, 0]} />
-    <CardinalMarker label="N" position={[0, 0.08, -HALF + 0.8]} /><CardinalMarker label="S" position={[0, 0.08, HALF - 0.8]} /><CardinalMarker label="L" position={[HALF - 0.8, 0.08, 0]} /><CardinalMarker label="O" position={[-HALF + 0.8, 0.08, 0]} />
+    <mesh position={[0, -0.14, 0]} receiveShadow><boxGeometry args={[WORKSPACE_SIZE, 0.08, WORKSPACE_SIZE]} /><meshStandardMaterial color="#f8fafc" roughness={1} /></mesh>
+    <gridHelper args={[WORKSPACE_SIZE, 56, '#94a3b8', '#d7dde5']} position={[0, -0.09, 0]} />
+    <CardinalMarker label="N" position={[0, 0.08, -HALF + 0.8]} />
+    <CardinalMarker label="S" position={[0, 0.08, HALF - 0.8]} />
+    <CardinalMarker label="L" position={[HALF - 0.8, 0.08, 0]} />
+    <CardinalMarker label="O" position={[-HALF + 0.8, 0.08, 0]} />
   </group>
 }
 
-function DimensionLabel({ text, position, rotation = 0, size = 0.34 }) {
-  return <Text position={position} rotation={[-Math.PI / 2, 0, rotation]} fontSize={size} color="#1e293b" anchorX="center" anchorY="middle">{text}</Text>
+function shapeFrom(points) {
+  const shape = new THREE.Shape()
+  points.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z))
+  shape.closePath()
+  return shape
 }
 
-function PolygonArea({ points, color, label, labelPosition }) {
-  const shape = new THREE.Shape()
-  points.forEach(([x, z], i) => i === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z)); shape.closePath()
+function Area({ points, color, border = '#66705b' }) {
+  const shape = shapeFrom(points)
   return <group>
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><shapeGeometry args={[shape]} /><meshStandardMaterial color={color} roughness={1} side={THREE.DoubleSide} /></mesh>
-    <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><edgesGeometry args={[new THREE.ShapeGeometry(shape)]} /><lineBasicMaterial color="#66705b" /></lineSegments>
-    {label && <Text position={[labelPosition[0], 0.06, labelPosition[1]]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.52} color="#475569" anchorX="center">{label}</Text>}
+    <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><edgesGeometry args={[new THREE.ShapeGeometry(shape)]} /><lineBasicMaterial color={border} /></lineSegments>
   </group>
+}
+
+function GroundText({ children, x, z, size = 0.42, rotation = 0, color = '#334155' }) {
+  return <Text position={[x, 0.07, z]} rotation={[-Math.PI / 2, 0, rotation]} fontSize={size} color={color} anchorX="center" anchorY="middle">{children}</Text>
 }
 
 function Tree({ x, z, scale = 1 }) {
   return <group position={[x, 0, z]} scale={scale}>
-    <mesh position={[0, 0.65, 0]} castShadow><cylinderGeometry args={[0.12, 0.18, 1.3, 8]} /><meshStandardMaterial color="#72583d" /></mesh>
-    <mesh position={[0, 1.6, 0]} castShadow><sphereGeometry args={[0.75, 12, 10]} /><meshStandardMaterial color="#47713c" /></mesh>
+    <mesh position={[0, 0.62, 0]} castShadow><cylinderGeometry args={[0.11, 0.17, 1.24, 8]} /><meshStandardMaterial color="#72583d" /></mesh>
+    <mesh position={[0, 1.55, 0]} castShadow><sphereGeometry args={[0.7, 12, 10]} /><meshStandardMaterial color="#47713c" /></mesh>
+  </group>
+}
+
+function StreetLayer() {
+  const half = CONTEXT_HALF_WIDTH
+  const sidewalk = [[-half, 0], [half, 0], [half, SIDEWALK_WIDTH], [-half, SIDEWALK_WIDTH]]
+  const roadStart = SIDEWALK_WIDTH
+  const roadEnd = roadStart + ROAD_WIDTH
+  const road = [[-half, roadStart], [half, roadStart], [half, roadEnd], [-half, roadEnd]]
+  return <group>
+    <Area points={sidewalk} color="#dedfdb" border="#a8adb3" />
+    <Area points={road} color="#70757c" border="#59616a" />
+    <GroundText x={0} z={roadStart + ROAD_WIDTH * 0.42} size={0.58} color="#e5e7eb">RUA I</GroundText>
+    <GroundText x={-half + 1.15} z={SIDEWALK_WIDTH / 2} size={0.27}>1,01 m</GroundText>
+    <GroundText x={half - 1.1} z={roadStart + ROAD_WIDTH / 2} size={0.3} rotation={Math.PI / 2} color="#e5e7eb">5,97 m</GroundText>
+  </group>
+}
+
+function LotsLayer() {
+  const half04 = site.boundaries.front / 2
+  const leftX = -half04 - NEIGHBOR_WIDTH
+  const rightX = half04 + NEIGHBOR_WIDTH
+  const leftDepth = site.boundaries.leftOnDrawing
+  const rightDepth = site.boundaries.rightOnDrawing
+
+  // Uma única linha de fundos fecha os três lotes. A frente de todos permanece em z=0.
+  const rearZ = (x) => {
+    const slope = (leftDepth - rightDepth) / (2 * half04)
+    return -leftDepth + (x + half04) * slope
+  }
+
+  const lot03 = [[leftX, 0], [-half04, 0], [-half04, -leftDepth], [leftX, rearZ(leftX)]]
+  const lot04 = [[-half04, 0], [half04, 0], [half04, -rightDepth], [-half04, -leftDepth]]
+  const lot05 = [[half04, 0], [rightX, 0], [rightX, rearZ(rightX)], [half04, -rightDepth]]
+
+  return <group>
+    <Area points={lot03} color="#d8d8c8" border="#69705e" />
+    <Area points={lot04} color="#9ab779" border="#365314" />
+    <Area points={lot05} color="#d8d8c8" border="#69705e" />
+
+    <GroundText x={leftX + NEIGHBOR_WIDTH / 2} z={rearZ(leftX + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 03</GroundText>
+    <GroundText x={0} z={(rearZ(0)) / 2} size={0.48} color="#294b24">LOTE 04 · QUADRA 07{`\n`}396,55 m²</GroundText>
+    <GroundText x={half04 + NEIGHBOR_WIDTH / 2} z={rearZ(half04 + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 05</GroundText>
+
+    {/* Todas as cotas ficam dentro do Lote 04. */}
+    <GroundText x={0} z={-0.55} size={0.31} color="#294b24">17,84 m</GroundText>
+    <GroundText x={0} z={rearZ(0) + 0.62} size={0.31} color="#294b24">17,92 m</GroundText>
+    <GroundText x={-half04 + 0.5} z={-leftDepth / 2} size={0.3} rotation={Math.PI / 2} color="#294b24">23,07 m</GroundText>
+    <GroundText x={half04 - 0.5} z={-rightDepth / 2} size={0.3} rotation={Math.PI / 2} color="#294b24">21,41 m</GroundText>
+  </group>
+}
+
+function GreenLayer() {
+  const half04 = site.boundaries.front / 2
+  const leftDepth = site.boundaries.leftOnDrawing
+  const rightDepth = site.boundaries.rightOnDrawing
+  const rearZ = (x) => {
+    const slope = (leftDepth - rightDepth) / (2 * half04)
+    return -leftDepth + (x + half04) * slope
+  }
+  const leftX = -CONTEXT_HALF_WIDTH
+  const rightX = CONTEXT_HALF_WIDTH
+  const nearLeft = rearZ(leftX)
+  const nearRight = rearZ(rightX)
+  const green = [[leftX, nearLeft], [rightX, nearRight], [rightX, nearRight - GREEN_DEPTH], [leftX, nearLeft - GREEN_DEPTH]]
+
+  return <group>
+    <Area points={green} color="#a8bc8e" border="#758862" />
+    <GroundText x={0} z={rearZ(0) - GREEN_DEPTH / 2} size={0.48} color="#365314">ÁREA VERDE DO CONDOMÍNIO</GroundText>
+    {[-15, -10, -5, 0, 5, 10, 15].map((x, index) => (
+      <Tree key={x} x={x} z={rearZ(x) - 3 + (index % 2 ? 0.55 : -0.35)} scale={0.82 + (index % 3) * 0.1} />
+    ))}
   </group>
 }
 
 function SiteContext() {
-  // Referencial construtivo: a testada inteira está em z=0 e é paralela à grade/Rua I.
-  // Somente a divisa dos fundos é inclinada. Essa mesma linha continua pelos lotes 03 e 05.
-  const frontHalf = site.boundaries.front / 2
-  const leftDepth = site.boundaries.leftOnDrawing
-  const rightDepth = site.boundaries.rightOnDrawing
-  const lot = [[-frontHalf, 0], [frontHalf, 0], [frontHalf, -rightDepth], [-frontHalf, -leftDepth]]
-
-  const rearZAtX = (x) => {
-    const t = (x + frontHalf) / (2 * frontHalf)
-    return -leftDepth + t * (leftDepth - rightDepth)
-  }
-
-  const neighborWidth = 12
-  const leftOuterX = -frontHalf - neighborWidth
-  const rightOuterX = frontHalf + neighborWidth
-  const lot03 = [[leftOuterX, 0], [-frontHalf, 0], [-frontHalf, -leftDepth], [leftOuterX, rearZAtX(leftOuterX)]]
-  const lot05 = [[frontHalf, 0], [rightOuterX, 0], [rightOuterX, rearZAtX(rightOuterX)], [frontHalf, -rightDepth]]
-
-  const sidewalkWidth = 1.01
-  const roadWidth = 5.97
-  const span = 48
-  const sidewalk = [[-span/2, 0], [span/2, 0], [span/2, sidewalkWidth], [-span/2, sidewalkWidth]]
-  const road = [[-span/2, sidewalkWidth], [span/2, sidewalkWidth], [span/2, sidewalkWidth + roadWidth], [-span/2, sidewalkWidth + roadWidth]]
-
-  const greenNearLeft = rearZAtX(-span/2)
-  const greenNearRight = rearZAtX(span/2)
-  const greenDepth = 5.2
-  const green = [[-span/2, greenNearLeft], [span/2, greenNearRight], [span/2, greenNearRight - greenDepth], [-span/2, greenNearLeft - greenDepth]]
-
-  const frontMid = [0, 0]
-  const rearMid = [0, rearZAtX(0)]
-  const leftMid = [-frontHalf, -leftDepth/2]
-  const rightMid = [frontHalf, -rightDepth/2]
-
+  // Ordem física e visual: Rua I -> lotes -> área verde.
   return <group>
-    <PolygonArea points={sidewalk} color="#d8d9d5" />
-    <PolygonArea points={road} color="#6f747b" label="RUA I" labelPosition={[0, sidewalkWidth + roadWidth/2]} />
-    <DimensionLabel text="1,01 m" position={[-10.2, 0.08, sidewalkWidth/2]} size={0.3} />
-    <DimensionLabel text="5,97 m" position={[10.7, 0.08, sidewalkWidth + roadWidth/2]} rotation={Math.PI/2} size={0.32} />
-
-    <PolygonArea points={lot03} color="#d8d8c8" label="LOTE 03" labelPosition={[leftOuterX + neighborWidth/2, rearZAtX(leftOuterX + neighborWidth/2)/2]} />
-    <PolygonArea points={lot05} color="#d8d8c8" label="LOTE 05" labelPosition={[frontHalf + neighborWidth/2, rearZAtX(frontHalf + neighborWidth/2)/2]} />
-    <PolygonArea points={green} color="#a8bc8e" />
-    <Text position={[0, 0.08, rearZAtX(0) - 2.5]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.5} color="#365314" anchorX="center">ÁREA VERDE DO CONDOMÍNIO</Text>
-    {[-16,-12,-8,-4,0,4,8,12,16].map((x,i)=><Tree key={x} x={x} z={rearZAtX(x)-2.8+(i%2?0.5:-0.4)} scale={0.8+(i%3)*0.1}/>)}
-
-    <PolygonArea points={lot} color="#91ad6d" />
-    <DimensionLabel text="17,84 m" position={[frontMid[0],0.09,frontMid[1]-0.42]} />
-    <DimensionLabel text="17,92 m" position={[rearMid[0],0.09,rearMid[1]+0.42]} />
-    <DimensionLabel text="23,07 m" position={[leftMid[0]-0.55,0.09,leftMid[1]]} rotation={Math.PI/2} />
-    <DimensionLabel text="21,41 m" position={[rightMid[0]+0.55,0.09,rightMid[1]]} rotation={Math.PI/2} />
-    <Text position={[0,0.1,-10.8]} rotation={[-Math.PI/2,0,0]} fontSize={0.5} color="#294b24" anchorX="center">LOTE 04 · QUADRA 07{`\n`}396,55 m²</Text>
+    <StreetLayer />
+    <LotsLayer />
+    <GreenLayer />
   </group>
 }
 
@@ -99,8 +137,9 @@ export default function HouseScene({ viewMode }) {
   return <>
     <color attach="background" args={['#e7ebef']} />
     <ambientLight intensity={1.35} />
-    <directionalLight position={[10,18,14]} intensity={1.8} castShadow />
-    <ConstructionWorkspace /><SiteContext />
-    <OrbitControls makeDefault enableDamping dampingFactor={0.08} enableRotate enableZoom enablePan rotateSpeed={0.7} zoomSpeed={0.9} panSpeed={0.7} minDistance={8} maxDistance={75} minPolarAngle={topView?0.01:0.12} maxPolarAngle={topView?0.45:Math.PI/2.04} target={[0,0,-7]} mouseButtons={{LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN}} touches={{ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_ROTATE}} />
+    <directionalLight position={[10, 18, 14]} intensity={1.8} castShadow />
+    <ConstructionWorkspace />
+    <SiteContext />
+    <OrbitControls makeDefault enableDamping dampingFactor={0.08} enableRotate enableZoom enablePan rotateSpeed={0.7} zoomSpeed={0.9} panSpeed={0.7} minDistance={8} maxDistance={80} minPolarAngle={topView ? 0.01 : 0.12} maxPolarAngle={topView ? 0.45 : Math.PI / 2.04} target={[0, 0, -8]} mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }} />
   </>
 }
