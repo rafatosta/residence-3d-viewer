@@ -25,9 +25,12 @@ function ConstructionWorkspace() {
   </group>
 }
 
+// THREE.Shape is created in local XY. The scene uses X/Z for the ground.
+// Negating Z here compensates the -90° X rotation so geometry and annotations
+// share exactly the same world-space coordinates.
 function shapeFrom(points) {
   const shape = new THREE.Shape()
-  points.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z))
+  points.forEach(([x, z], index) => index === 0 ? shape.moveTo(x, -z) : shape.lineTo(x, -z))
   shape.closePath()
   return shape
 }
@@ -57,7 +60,9 @@ function StreetLayer() {
   const roadStart = SIDEWALK_WIDTH
   const roadEnd = roadStart + ROAD_WIDTH
   const road = [[-half, roadStart], [half, roadStart], [half, roadEnd], [-half, roadEnd]]
-  return <group>
+
+  // Geometry + every annotation belonging to the street stay in this group.
+  return <group name="street-layer">
     <Area points={sidewalk} color="#dedfdb" border="#a8adb3" />
     <Area points={road} color="#70757c" border="#59616a" />
     <GroundText x={0} z={roadStart + ROAD_WIDTH * 0.42} size={0.58} color="#e5e7eb">RUA I</GroundText>
@@ -73,26 +78,26 @@ function LotsLayer() {
   const leftDepth = site.boundaries.leftOnDrawing
   const rightDepth = site.boundaries.rightOnDrawing
 
-  // Uma única linha de fundos fecha os três lotes. A frente de todos permanece em z=0.
+  // One continuous rear boundary closes all three lots. Their frontage is z=0.
   const rearZ = (x) => {
     const slope = (leftDepth - rightDepth) / (2 * half04)
     return -leftDepth + (x + half04) * slope
   }
 
-  const lot03 = [[leftX, 0], [-half04, 0], [-half04, -leftDepth], [leftX, rearZ(leftX)]]
+  // The source identifies Lote 05 on the left and Lote 03 on the right.
+  const lot05 = [[leftX, 0], [-half04, 0], [-half04, -leftDepth], [leftX, rearZ(leftX)]]
   const lot04 = [[-half04, 0], [half04, 0], [half04, -rightDepth], [-half04, -leftDepth]]
-  const lot05 = [[half04, 0], [rightX, 0], [rightX, rearZ(rightX)], [half04, -rightDepth]]
+  const lot03 = [[half04, 0], [rightX, 0], [rightX, rearZ(rightX)], [half04, -rightDepth]]
 
-  return <group>
-    <Area points={lot03} color="#d8d8c8" border="#69705e" />
-    <Area points={lot04} color="#9ab779" border="#365314" />
+  return <group name="lots-layer">
     <Area points={lot05} color="#d8d8c8" border="#69705e" />
+    <Area points={lot04} color="#9ab779" border="#365314" />
+    <Area points={lot03} color="#d8d8c8" border="#69705e" />
 
-    <GroundText x={leftX + NEIGHBOR_WIDTH / 2} z={rearZ(leftX + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 03</GroundText>
-    <GroundText x={0} z={(rearZ(0)) / 2} size={0.48} color="#294b24">LOTE 04 · QUADRA 07{`\n`}396,55 m²</GroundText>
-    <GroundText x={half04 + NEIGHBOR_WIDTH / 2} z={rearZ(half04 + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 05</GroundText>
+    <GroundText x={leftX + NEIGHBOR_WIDTH / 2} z={rearZ(leftX + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 05</GroundText>
+    <GroundText x={0} z={rearZ(0) / 2} size={0.48} color="#294b24">LOTE 04 · QUADRA 07{`\n`}396,55 m²</GroundText>
+    <GroundText x={half04 + NEIGHBOR_WIDTH / 2} z={rearZ(half04 + NEIGHBOR_WIDTH / 2) / 2} size={0.46}>LOTE 03</GroundText>
 
-    {/* Todas as cotas ficam dentro do Lote 04. */}
     <GroundText x={0} z={-0.55} size={0.31} color="#294b24">17,84 m</GroundText>
     <GroundText x={0} z={rearZ(0) + 0.62} size={0.31} color="#294b24">17,92 m</GroundText>
     <GroundText x={-half04 + 0.5} z={-leftDepth / 2} size={0.3} rotation={Math.PI / 2} color="#294b24">23,07 m</GroundText>
@@ -114,7 +119,7 @@ function GreenLayer() {
   const nearRight = rearZ(rightX)
   const green = [[leftX, nearLeft], [rightX, nearRight], [rightX, nearRight - GREEN_DEPTH], [leftX, nearLeft - GREEN_DEPTH]]
 
-  return <group>
+  return <group name="green-layer">
     <Area points={green} color="#a8bc8e" border="#758862" />
     <GroundText x={0} z={rearZ(0) - GREEN_DEPTH / 2} size={0.48} color="#365314">ÁREA VERDE DO CONDOMÍNIO</GroundText>
     {[-15, -10, -5, 0, 5, 10, 15].map((x, index) => (
@@ -124,11 +129,11 @@ function GreenLayer() {
 }
 
 function SiteContext() {
-  // Ordem física e visual: Rua I -> lotes -> área verde.
+  // Physical order: green area behind lots; street in front of lots.
   return <group>
-    <StreetLayer />
-    <LotsLayer />
     <GreenLayer />
+    <LotsLayer />
+    <StreetLayer />
   </group>
 }
 
