@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useState } from 'react'
 import HouseScene from './components/HouseScene'
+import MobileWalkControls from './components/MobileWalkControls'
 
 export default function App() {
   const [viewMode, setViewMode] = useState('perspective')
@@ -27,8 +28,9 @@ export default function App() {
       <Canvas key={viewMode} shadows dpr={[1, 1.75]} camera={camera} gl={{ antialias: true, powerPreference: 'high-performance' }}>
         <Suspense fallback={null}><HouseScene viewMode={viewMode} /></Suspense>
       </Canvas>
+      {viewMode === 'walk' && <MobileWalkControls />}
       {viewMode === 'walk' ? (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-slate-950/80 px-4 py-2 text-center text-[11px] text-white shadow backdrop-blur">WASD/setas para andar · arraste para girar a câmera · avatar 1,60 m</div>
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 rounded-full bg-slate-950/80 px-4 py-2 text-center text-[11px] text-white shadow backdrop-blur md:block">WASD/setas para andar · arraste para girar a câmera · avatar 1,60 m</div>
       ) : (
         <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/85 px-3 py-1.5 text-[11px] text-slate-600 shadow backdrop-blur">N ↑ · S ↓ · O ← · L →</div>
       )}
