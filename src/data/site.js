@@ -1,10 +1,15 @@
 // Lote 04, Quadra 07 — Condomínio Marina Ville.
 // 1 unidade = 1 metro.
 //
-// O sistema de modelagem usa a testada da Rua I como eixo horizontal da grade.
-// Isso mantém paredes/implantação futuras alinhadas à malha métrica (1 m x 1 m).
-// A orientação geográfica é informação independente e será mostrada pela bússola,
-// em vez de girar toda a geometria de construção.
+// Referência visual da planta planimétrica:
+// - testada/Rua I horizontal e reta: 17,84 m
+// - lateral esquerda: 23,07 m
+// - lateral direita: 21,41 m
+// - fundo voltado para a área verde: aproximadamente 17,92 m e inclinado
+//
+// Para o workspace construtivo, a testada fica alinhada à grade de 1 m.
+// As duas laterais permanecem perpendiculares à testada. A diferença de
+// profundidade entre 23,07 m e 21,41 m produz a inclinação SOMENTE no fundo.
 
 export const site = {
   name: 'Lote 04 — Quadra 07',
@@ -22,10 +27,7 @@ export const site = {
     rightOnDrawing: 'Lote 03',
   },
   orientation: {
-    // Leitura gráfica aproximada da rosa dos ventos do estudo preliminar.
-    // Não é um azimute topográfico cotado.
     northFromPlanTopDegrees: 20,
-    // Geometria NÃO é rotacionada: frente = eixo X da grade.
     workspaceRotationDegrees: 0,
     source: 'Estudo preliminar — rosa dos ventos (leitura gráfica aproximada)',
   },
@@ -33,12 +35,13 @@ export const site = {
     unitMeters: 1,
     alignment: 'frontage',
   },
-  // Coordenadas locais: frente perfeitamente horizontal em z = 0.
-  // A diferença 23,07 x 21,41 m aparece no fundo, como na planta planimétrica.
+  // Frente em z=0. Laterais retas/paralelas ao eixo Z.
+  // O fundo liga profundidades diferentes e, por isso, é o único lado inclinado.
+  // Distância geométrica do fundo ≈ 17,92 m (sqrt(17,84² + 1,66²)).
   polygon: [
     [-8.92, 0],
     [8.92, 0],
-    [8.66017427, -21.40842336],
-    [-9.18276646, -23.06850350],
+    [8.92, -21.41],
+    [-8.92, -23.07],
   ],
 };
